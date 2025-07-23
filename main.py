@@ -95,9 +95,16 @@ async def play(ctx, *, search: str):
         await ctx.author.voice.channel.connect()
 
     ydl_opts = {
-        'config_locations': ['yt-dlp.conf']
+        'format': 'bestaudio/best',
+        'quiet': True,
+        'default_search': 'ytsearch',
+        'noplaylist': True,
+        'cookiefile': 'cookies.txt' if os.path.exists('cookies.txt') else None,
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+            'Referer': 'https://www.youtube.com/',
+        },
     }
-
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(search, download=False)
         if 'entries' in info:
