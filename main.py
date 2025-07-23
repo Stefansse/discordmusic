@@ -130,8 +130,13 @@ async def play(ctx, *, search: str):
 
     vc = ctx.voice_client
     if vc.is_playing():
-        bot.loop_queue.append(search)
-        return await ctx.send("🔂 Added to queue.")
+        if search in bot.loop_queue:
+            bot.loop_queue.remove(search)
+            bot.loop_queue.insert(0, search)
+            return await ctx.send("🔁 Song already in queue — moved to front.")
+        else:
+            bot.loop_queue.append(search)
+            return await ctx.send("🔂 Added to queue.")
     vc.play(source, after=after_playing)
 
     view = MusicControls(ctx, title, url)
