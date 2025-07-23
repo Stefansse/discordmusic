@@ -95,15 +95,8 @@ async def play(ctx, *, search: str):
         await ctx.author.voice.channel.connect()
 
     ydl_opts = {
-        'format': 'bestaudio/best',
-        'quiet': True,
-        'default_search': 'ytsearch',
-        'noplaylist': True,
+        'config_locations': ['yt-dlp.conf']
     }
-
-    # Add cookies file if present
-    if os.path.exists("cookies.txt"):
-        ydl_opts['cookiefile'] = "cookies.txt"
 
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(search, download=False)
@@ -113,6 +106,30 @@ async def play(ctx, *, search: str):
         title = info.get('title', 'Unknown Title')
 
     source = await discord.FFmpegOpusAudio.from_probe(url, **FFMPEG_OPTIONS)
+
+    def after_playing(e):
+        if bot.is_looping:
+            coro = ctx.invoke(play, search=search)
+        elif bot.loop_queue:
+            next_song = bot.loop_queue.pop(0)
+            coro = ctx.invoke(play, search=next_song)
+        else:
+            return
+        fut = asyncio.run_coroutine_threadsafe(coro, bot.loop)
+        try:
+            fut.result()
+        except Exception as ex:
+            print(f"Error: {ex}")
+
+    vc = ctx.voice_client
+    if vc.is_playing():
+        bot.loop_queue.append(search)
+        return await ctx.send("🔂 Added to queue.")
+    vc.play(source, after=after_playing)
+
+    view = MusicControls(ctx, title, url)
+    await ctx.send(f"🎶 Now Playing: **{title}**", view=view)
+
 
     def after_playing(e):
         if bot.is_looping:
