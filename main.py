@@ -4,6 +4,7 @@ from discord import app_commands
 import yt_dlp as youtube_dl
 import asyncio
 import os
+import base64
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -22,6 +23,15 @@ FFMPEG_OPTIONS = {
 }
 
 TOKEN = os.getenv("DISCORD_TOKEN")
+
+# Decode YOUTUBE_COOKIES_BASE64 env var to cookies.txt file if available
+cookie_b64 = os.getenv("YOUTUBE_COOKIES_BASE64")
+if cookie_b64:
+    with open("cookies.txt", "wb") as f:
+        f.write(base64.b64decode(cookie_b64))
+    print("✅ Cookies file created from base64 env variable.")
+else:
+    print("⚠️ No YOUTUBE_COOKIES_BASE64 env variable found; continuing without cookies.")
 
 @bot.event
 async def on_ready():
@@ -90,6 +100,10 @@ async def play(ctx, *, search: str):
         'default_search': 'ytsearch',
         'noplaylist': True,
     }
+
+    # Add cookies file if present
+    if os.path.exists("cookies.txt"):
+        ydl_opts['cookiefile'] = "cookies.txt"
 
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(search, download=False)
